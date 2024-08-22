@@ -28,6 +28,7 @@ bool bFixAspectLimit;
 float fSharpeningValue;
 bool bChromaticAberration;
 bool bVignette;
+bool bRayReconstruction;
 float fAdditionalFOV;
 
 // Variables
@@ -35,6 +36,7 @@ bool bCachedConsoleObjects = false;
 IConsoleVariable* cvarSharpen;
 IConsoleVariable* cvarCA;
 IConsoleVariable* cvarVignette;
+IConsoleVariable* cvarRR;
 
 // CVAR addresses
 UC::TMap<UC::FString, Unreal::FConsoleObject*> ConsoleObjects;
@@ -103,6 +105,7 @@ void Configuration()
     inipp::get_value(ini.sections["Adjust Sharpening"], "Strength", fSharpeningValue);
     inipp::get_value(ini.sections["Chromatic Aberration"], "Enabled", bChromaticAberration);
     inipp::get_value(ini.sections["Vignette"], "Enabled", bVignette);
+    inipp::get_value(ini.sections["RayReconstruction"], "Enabled", bRayReconstruction);
 
     spdlog::info("----------");
     spdlog::info("Config Parse: bFixAspectLimit: {}", bFixAspectLimit);
@@ -114,6 +117,7 @@ void Configuration()
     spdlog::info("Config Parse: fSharpeningValue: {}", fSharpeningValue);
     spdlog::info("Config Parse: bChromaticAberration: {}", bChromaticAberration);
     spdlog::info("Config Parse: bVignette: {}", bVignette);
+    spdlog::info("Config Parse: bRayReconstruction: {}", bRayReconstruction);
     spdlog::info("----------");
 
     // Grab desktop resolution/aspect
@@ -172,9 +176,14 @@ void GetCVARs()
 
         // r.Tonemapper.Quality
         cvarVignette = Unreal::FindCVAR("r.Tonemapper.Quality", ConsoleObjects);
-        if (cvarCA) {
+        if (cvarVignette) {
             spdlog::info("CVar: r.Tonemapper.Quality: Address {:x}", (uintptr_t)cvarVignette);
         }
+
+        cvarRR = Unreal::FindCVAR("r.NGX.DLSS.DenoiserMode", ConsoleObjects);
+        if (cvarRR) {
+			spdlog::info("CVar: r.NGX.DLSS.DenoiserMode: Address {:x}", (uintptr_t)cvarRR);
+		}
     }
 }
 
@@ -208,6 +217,12 @@ void SetCVARs()
                 if (cvarVignette && (cvarVignette->GetInt() != 1) && !bVignette) {
                     cvarVignette->Set(L"1");
                     spdlog::info("CVar: r.Tonemapper.Quality: Set to {}", cvarVignette->GetInt());
+                }
+
+                // r.NGX.DLSS.DenoiserMode
+                if (cvarRR && (cvarRR->GetInt() != (int)bRayReconstruction)) {
+                    cvarRR->Set(std::to_wstring((int)bRayReconstruction).c_str());
+                    spdlog::info("CVar: r.NGX.DLSS.DenoiserMode: Set to {}", cvarRR->GetInt());
                 }
             });
     }
